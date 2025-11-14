@@ -16,17 +16,11 @@
 #ifndef GRPPI_COMMON_META_H
 #define GRPPI_COMMON_META_H
 
+#include <tuple>
 #include <type_traits>
 
 #if __has_include(<experimental/type_traits>)
-
-#  include <experimental/type_traits>
-
-#  ifndef __cpp_lib_experimental_detect
-#    error "C++ detection idiom not supported. Upgrade your C++ compiler"
-#  endif
-#else
-#  error "Experimental type traits not found. Upgrade your C++ compiler."
+# include <experimental/type_traits>
 #endif
 
 namespace grppi::meta {
@@ -128,13 +122,10 @@ there is no type defined.
   template<typename Ret, typename F, typename Arg, typename... Rest>
   Arg input_type_t(Ret(F::*) (Arg, Rest...) const);
 
-  template <typename F, class = std::enable_if_t<!std::is_pointer<F>::value>>
+  template <typename F, class = std::enable_if_t<!std::is_pointer_v<F>>>
   decltype(input_type_t(&F::operator())) input_type_l(F);
 
-  template <typename F, class = std::enable_if_t<std::is_pointer<F>::value>>
-  decltype(input_type_t(std::declval<F>())) input_type_l(F);
-
-  template <typename F>
+  template <typename F, class = std::enable_if_t<std::is_pointer_v<F>>>
   decltype(input_type_t(std::declval<F>())) input_type_l(F);
 
   template <typename F>
