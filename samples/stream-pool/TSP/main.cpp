@@ -105,7 +105,7 @@ void travel(grppi::dynamic_execution & e, int num_cities) {
       return compute_cost(evolved, problem) < compute_cost(selected, problem) ?
              evolved : selected;
     },
-    [&problem, &count, num_cities] (auto )
+    [&count] (auto)
     {
       return 2000 < count++;
     }

@@ -21,7 +21,7 @@
 #include <string>
 #include <numeric>
 #include <stdexcept>
-#include <experimental/optional>
+#include <optional>
 
 // grppi
 #include "grppi/grppi.h"

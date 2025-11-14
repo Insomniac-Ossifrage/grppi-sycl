@@ -21,7 +21,7 @@
 #include <string>
 #include <numeric>
 #include <stdexcept>
-#include <experimental/optional>
+#include <optional>
 
 // grppi
 #include "grppi/grppi.h"
@@ -60,7 +60,7 @@ void print_message(const std::string & prog, const std::string & msg) {
 
 
 int main(int argc, char **argv) {
-    
+
   using namespace std;
 
   if (argc < 5) {

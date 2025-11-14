@@ -22,7 +22,7 @@
 #include <numeric>
 #include <stdexcept>
 #include <random>
-#include <experimental/optional>
+#include <optional>
 
 // grppi
 #include "grppi/grppi.h"
