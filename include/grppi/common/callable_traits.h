@@ -72,16 +72,12 @@ constexpr size_t callable_arity() {
 // Meta-function for determining if a callable returns void
 template <typename G>
 constexpr bool has_void_return() {
-  return std::is_same<void,
-      typename std::result_of<G()>::type
-  >::value;
+  return std::is_same_v<void, std::invoke_result_t<G>>;
 }
 
 template <typename F, typename I>
 constexpr bool has_void_return() {
-  return std::is_same<void,
-        typename std::result_of<F(I)>::type
-      >::value;
+  return std::is_same_v<void, std::invoke_result<F, I>>;
 }
 
 // Meta-function for determining if a callable has arguments

@@ -102,7 +102,7 @@ struct stage_return_type{
 \brief Determines the return type of applying a function on a input type.
 */
 template <typename Input, typename Transformer>
-using result_type = typename std::result_of<Transformer(Input)>::type; 
+using result_type = std::invoke_result_t<Transformer, Input>;
 
 /**
 \brief Determines the return type of applying a function on a input type.

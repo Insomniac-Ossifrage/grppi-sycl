@@ -845,10 +845,8 @@ namespace grppi {
       Generator && generate_op,
       Transformers && ... transform_ops) const
   {
-    using namespace std;
-
-    using result_type = decay_t<typename result_of<Generator()>::type>;
-    auto output_queue = make_queue<pair<result_type, long>>();
+    using result_type = std::decay_t<std::invoke_result_t<Generator>>;
+    auto output_queue = make_queue<std::pair<result_type, long>>();
 
 #pragma omp parallel
     {
@@ -864,7 +862,7 @@ namespace grppi {
           }
         }
         do_pipeline(output_queue,
-            forward<Transformers>(transform_ops)...);
+            std::forward<Transformers>(transform_ops)...);
 #pragma omp taskwait
       }
     }
@@ -978,8 +976,7 @@ namespace grppi {
     if (predicate_op(input)) { return solve_op(std::forward<Input>(input)); }
     auto subproblems = divide_op(std::forward<Input>(input));
 
-    using subresult_type =
-    std::decay_t<typename std::result_of<Solver(Input)>::type>;
+    using subresult_type = std::decay_t<std::invoke_result_t<Solver, Input>>;
     std::vector<subresult_type> partials(subproblems.size() - 1);
 
     auto process_subproblems = [&, this](auto it, std::size_t div) {
@@ -1061,8 +1058,7 @@ namespace grppi {
       return solve_op(std::forward<Input>(input));
     }
 
-    using subresult_type =
-    std::decay_t<typename std::result_of<Solver(Input)>::type>;
+    using subresult_type = std::decay_t<std::invoke_result_t<Solver, Input>>;
     std::vector<subresult_type> partials(subproblems.size() - 1);
 
     auto process_subproblems = [&, this](auto it, std::size_t div) {
@@ -1221,12 +1217,11 @@ namespace grppi {
       Transformer && transform_op,
       OtherTransformers && ... other_ops) const
   {
-    using namespace std;
-    using input_type = typename Queue::value_type;
-    using input_value_type = typename input_type::first_type::value_type;
-    using result_type = typename result_of<Transformer(input_value_type)>::type;
-    using output_value_type = grppi::optional<result_type>;
-    using output_type = pair<output_value_type, long>;
+    using input_type = Queue::value_type;
+    using input_value_type = input_type::first_type::value_type;
+    using result_type = std::invoke_result_t<Transformer, input_value_type>;
+    using output_value_type = std::optional<result_type>;
+    using output_type = std::pair<output_value_type, long>;
 
     decltype(auto) output_queue =
         get_output_queue<output_type>(other_ops...);
@@ -1243,7 +1238,7 @@ namespace grppi {
     }
 
     do_pipeline(output_queue,
-        forward<OtherTransformers>(other_ops)...);
+        std::forward<OtherTransformers>(other_ops)...);
   }
 
   template<typename Queue, typename FarmTransformer,

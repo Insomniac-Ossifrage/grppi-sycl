@@ -958,14 +958,10 @@ namespace grppi {
       Evaluation && eval_op,
       Predicate && termination_op) const
   {
-
-    using namespace std;
-
-    using selected_type = typename std::result_of<Selection(
-        Population &)>::type;
-    using individual_type = typename Population::value_type;
-    using selected_op_type = optional<selected_type>;
-    using individual_op_type = optional<individual_type>;
+    using selected_type = std::invoke_result_t<Selection, Population&>;
+    using individual_type = Population::value_type;
+    using selected_op_type = std::optional<selected_type>;
+    using individual_op_type = std::optional<individual_type>;
 
     if (population.size() == 0) { return; }
 
@@ -1058,8 +1054,7 @@ namespace grppi {
       return solve_op(std::forward<Input>(input));
     }
 
-    using subresult_type = std::decay_t<typename std::result_of<Solver(
-        Input)>::type>;
+    using subresult_type = std::decay_t<std::invoke_result_t<Solver, Input>>;
     std::vector<subresult_type> partials(sub_problems.size() - 1);
     int division = 0;
 
@@ -1114,8 +1109,7 @@ namespace grppi {
     if (predicate_op(input)) { return solve_op(std::forward<Input>(input)); }
     auto sub_problems = divide_op(std::forward<Input>(input));
 
-    using subresult_type = std::decay_t<typename std::result_of<Solver(
-        Input)>::type>;
+    using subresult_type = std::decay_t<std::invoke_result_t<Solver, Input>>;
     std::vector<subresult_type> partials(sub_problems.size() - 1);
     int division = 0;
 

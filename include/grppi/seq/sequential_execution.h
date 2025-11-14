@@ -556,8 +556,7 @@ namespace grppi {
     if (predicate_op(input)) { return solve_op(std::forward<Input>(input)); }
     auto subproblems = divide_op(std::forward<Input>(input));
 
-    using subproblem_type =
-    std::decay_t<typename std::result_of<Solver(Input)>::type>;
+    using subproblem_type = std::decay_t<std::invoke_result_t<Solver, Input>>;
     std::vector<subproblem_type> solutions;
     for (auto && sp : subproblems) {
       solutions.push_back(divide_conquer(sp,
@@ -584,8 +583,7 @@ namespace grppi {
       return solve_op(std::forward<Input>(input));
     }
 
-    using subproblem_type =
-    std::decay_t<typename std::result_of<Solver(Input)>::type>;
+    using subproblem_type = std::decay_t<std::invoke_result_t<Solver, Input>>;
     std::vector<subproblem_type> solutions;
     for (auto && sp : subproblems) {
       solutions.push_back(divide_conquer(sp,

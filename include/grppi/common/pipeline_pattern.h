@@ -120,12 +120,12 @@ namespace internal {
 
 template <typename I, typename T>
 struct output_value_type {
-  using type = std::decay_t<typename std::result_of<T(I)>::type>;
+  using type = std::decay_t<std::invoke_result_t<T(I)>>;
 };
 
 template <typename I, typename T, typename ... U>
 struct output_value_type<I,pipeline_t<T,U...>> {
-  using first_result = std::decay_t<typename std::result_of<T(I)>::type>;
+  using first_result = std::decay_t<std::invoke_result_t<T(I)>>;
   using type = std::conditional_t<sizeof...(U)==0,
     first_result,
     typename output_value_type<first_result,U...>::type

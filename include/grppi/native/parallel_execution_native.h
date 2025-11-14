@@ -895,12 +895,11 @@ void parallel_execution_native::pipeline(
     Generator && generate_op, 
     Transformers && ... transform_ops) const
 {
-  using namespace std;
-  using result_type = decay_t<typename result_of<Generator()>::type>;
-  using output_type = pair<result_type,long>;
+  using result_type = std::decay_t<std::invoke_result_t<Generator>>;
+  using output_type = std::pair<result_type,long>;
   auto output_queue = make_queue<output_type>();
 
-  thread generator_task([&,this]() {
+  std::thread generator_task([&,this]() {
     auto manager = thread_manager();
 
     long order = 0;
@@ -912,7 +911,7 @@ void parallel_execution_native::pipeline(
     }
   });
 
-  do_pipeline(output_queue, forward<Transformers>(transform_ops)...);
+  do_pipeline(output_queue, std::forward<Transformers>(transform_ops)...);
   generator_task.join();
 }
 
@@ -924,12 +923,10 @@ void parallel_execution_native::stream_pool(Population & population,
                 Evaluation && eval_op,
                 Predicate && termination_op) const
 {
-  using namespace std;
-
-  using selected_type = typename std::result_of<Selection(Population&)>::type;
-  using individual_type = typename Population::value_type;
-  using selected_op_type = optional<selected_type>;
-  using individual_op_type = optional<individual_type>;
+  using selected_type = std::invoke_result_t<Selection, Population&>;
+  using individual_type = Population::value_type;
+  using selected_op_type = std::optional<selected_type>;
+  using individual_op_type = std::optional<individual_type>;
 
   if( population.size() == 0 ) return;
 
@@ -956,7 +953,7 @@ void parallel_execution_native::stream_pool(Population & population,
       output_queue.push(individual_op_type{});
   };
 
-  thread selector([&](){
+  std::thread selector([&](){
      for(;;){
        if(end) break;
        while(lock.test_and_set());
@@ -972,7 +969,7 @@ void parallel_execution_native::stream_pool(Population & population,
        selected_queue.push(selected_op_type{});
   });
 
-  thread sink([&](){
+  std::thread sink([&](){
     auto item = output_queue.pop();
     while(item) {
       while(lock.test_and_set());
@@ -1010,8 +1007,7 @@ auto parallel_execution_native::divide_conquer(
   auto subproblems = divide_op(std::forward<Input>(input));
   if (subproblems.size()<=1) { return solve_op(std::forward<Input>(input)); }
 
-  using subresult_type = 
-      std::decay_t<typename std::result_of<Solver(Input)>::type>;
+  using subresult_type = std::decay_t<std::invoke_result_t<Solver, Input>>;
   std::vector<subresult_type> partials(subproblems.size()-1);
 
   auto process_subproblem = [&,this](auto it, std::size_t div) {
@@ -1066,8 +1062,7 @@ auto parallel_execution_native::divide_conquer(
   if (predicate_op(input)) { return solve_op(std::forward<Input>(input)); }
   auto subproblems = divide_op(std::forward<Input>(input));
 
-  using subresult_type =
-      std::decay_t<typename std::result_of<Solver(Input)>::type>;
+  using subresult_type = std::decay_t<std::invoke_result_t<Solver, Input>>;
   std::vector<subresult_type> partials(subproblems.size()-1);
 
   auto process_subproblem = [&,this](auto it, std::size_t div) {
@@ -1177,19 +1172,16 @@ void parallel_execution_native::do_pipeline(
     Transformer && transform_op,
     OtherTransformers && ... other_transform_ops) const
 {
-  using namespace std;
-
-  using input_item_type = typename Queue::value_type;
-  using input_item_value_type = typename input_item_type::first_type::value_type;
-  using transform_result_type = 
-      decay_t<typename result_of<Transformer(input_item_value_type)>::type>;
-  using output_item_value_type = grppi::optional<transform_result_type>;
-  using output_item_type = pair<output_item_value_type,long>;
+  using input_item_type = Queue::value_type;
+  using input_item_value_type = input_item_type::first_type::value_type;
+  using transform_result_type = std::decay_t<std::invoke_result_t<Transformer, input_item_value_type>>;
+  using output_item_value_type = std::optional<transform_result_type>;
+  using output_item_type = std::pair<output_item_value_type,long>;
 
   decltype(auto) output_queue =
     get_output_queue<output_item_type>(other_transform_ops...);
 
-  thread task([&,this]() {
+  std::thread task([&,this]() {
     auto manager = thread_manager();
 
     for (;;) {
@@ -1202,7 +1194,7 @@ void parallel_execution_native::do_pipeline(
   });
 
   do_pipeline(output_queue, 
-      forward<OtherTransformers>(other_transform_ops)...);
+      std::forward<OtherTransformers>(other_transform_ops)...);
   task.join();
 }
 
