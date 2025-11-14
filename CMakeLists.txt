@@ -13,7 +13,7 @@ message(STATUS "CMAKE_CXX_COMPILER_ID: " ${CMAKE_CXX_COMPILER_ID})
 
 if (NOT DEFINED CMAKE_CXX_STANDARD)
   message(STATUS "C++ standard not set")
-  set(CMAKE_CXX_STANDARD 17)
+  set(CMAKE_CXX_STANDARD 26)
 endif ()
 if (CMAKE_CXX_STANDARD LESS 17)
   message(FATAL_ERROR "Minimum standard is C++17")
