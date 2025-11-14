@@ -21,7 +21,10 @@
 #include <atomic>
 #include <mutex>
 #include <condition_variable>
-#include <iostream>
+#include <ostream>
+#include <cstddef>
+#include <type_traits>
+#include <utility>
 
 namespace grppi{
 
@@ -104,7 +107,6 @@ private:
 
   /// Buffer of elements.
   std::unique_ptr<T[]> buffer_;
-  //std::vector<T> buffer_;
 
   /// Index to next position to read.
   std::atomic<unsigned long long> pread_{0};
@@ -345,7 +347,7 @@ public:
   \brief Move constructs a queue from another one.
   \param q The queue to move from.
   */
-  mpmc_queue(mpmc_queue && q); 
+  mpmc_queue(mpmc_queue && q) noexcept;
 
   mpmc_queue & operator=(mpmc_queue &&) = delete;
 
@@ -407,16 +409,16 @@ private:
   template <typename Q>
   class concrete_queue : public base_queue {
   public:
-    concrete_queue(int size) : queue_{size} {}
-    concrete_queue(const concrete_queue<Q>&) = delete;
-    concrete_queue(concrete_queue<Q>&&) = default;
-    ~concrete_queue() = default;
+    explicit concrete_queue(int size) : queue_{size} {}
+    concrete_queue(const concrete_queue &) = delete;
+    concrete_queue(concrete_queue &&) = default;
+    ~concrete_queue() override = default;
     bool empty() const noexcept override { return queue_.empty(); }
-    T pop () noexcept(std::is_nothrow_move_constructible<T>::value) override
+    T pop () noexcept(std::is_nothrow_move_constructible_v<T>) override
       { return queue_.pop(); }
-    void push (T && x) noexcept(std::is_nothrow_move_assignable<T>::value) override
+    void push (T && x) noexcept(std::is_nothrow_move_assignable_v<T>) override
       { queue_.push(std::forward<T>(x)); }
-    void push (T const & x) noexcept(std::is_nothrow_copy_assignable<T>::value) override
+    void push (T const & x) noexcept(std::is_nothrow_copy_assignable_v<T>) override
       { queue_.push(x); }
   private:
     Q queue_;
@@ -426,14 +428,14 @@ private:
   \brief Get buffer containing queue wrapper as a pointer to base_queue.
   */
   base_queue * pself() noexcept {
-    return reinterpret_cast<base_queue*>(&buffer_);
+    return reinterpret_cast<base_queue*>(std::addressof(buffer_));
   }
-      
+
   /**
   \brief Get buffer containing queue wrapper as a pointer to constant base_queue.
   */
   base_queue const * pself_const() const noexcept {
-    return reinterpret_cast<base_queue const*>(&buffer_);
+    return reinterpret_cast<base_queue const*>(std::addressof(buffer_));
   }
 
   /// Type for concrete atomic queue.
@@ -442,10 +444,18 @@ private:
   /// Type for concrete locked queue.
   using concrete_locked_queue = concrete_queue<locked_mpmc_queue<T>>;
 
+  static constexpr std::size_t buffer_size =
+    sizeof(concrete_atomic_queue) > sizeof(concrete_locked_queue)
+      ? sizeof(concrete_atomic_queue)
+      : sizeof(concrete_locked_queue);
+
+  static constexpr std::size_t buffer_align =
+    alignof(concrete_atomic_queue) > alignof(concrete_locked_queue)
+      ? alignof(concrete_atomic_queue)
+      : alignof(concrete_locked_queue);
+
   /// Buffer that can hold any queue.
-  std::aligned_union_t<0,
-      concrete_atomic_queue,
-      concrete_locked_queue> buffer_;
+  alignas(buffer_align) std::byte buffer_[buffer_size];
 };
 
 template <typename T>
@@ -453,22 +463,22 @@ mpmc_queue<T>::mpmc_queue(int size, queue_mode mode)
 {
   switch (mode) {
     case queue_mode::lockfree:
-      new (&buffer_) concrete_atomic_queue(size);
+      new (buffer_) concrete_atomic_queue(size);
       break;
     case queue_mode::blocking:
-      new (&buffer_) concrete_atomic_queue(size);
+      new (buffer_) concrete_locked_queue(size);
       break;
   }
 }
 
 template <typename T>
-mpmc_queue<T>::mpmc_queue(mpmc_queue && q) 
+mpmc_queue<T>::mpmc_queue(mpmc_queue && q) noexcept
 {
   if (auto * patomic = dynamic_cast<concrete_atomic_queue*>(q.pself())) {
-    new (&buffer_) concrete_atomic_queue{std::move(*patomic)};
+    new (buffer_) concrete_atomic_queue{std::move(*patomic)};
   }
   else if (auto * plocked = dynamic_cast<concrete_locked_queue*>(q.pself())) {
-    new (&buffer_) concrete_locked_queue{std::move(*plocked)};
+    new (buffer_) concrete_locked_queue{std::move(*plocked)};
   }
 }
 
@@ -487,7 +497,7 @@ struct is_queue<mpmc_queue<T>> : std::true_type {};
 }
 
 template <typename T>
-constexpr bool is_queue = internal::is_queue<T>();
+constexpr bool is_queue = internal::is_queue<T>::value;
 
 template <typename T>
 using requires_queue = std::enable_if_t<is_queue<T>, int>;
