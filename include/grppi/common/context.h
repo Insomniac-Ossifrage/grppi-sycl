@@ -62,7 +62,7 @@ public:
   }
 
   Transformer && transformer() && {
-    return transformer_;
+    return std::move(transformer_);
   }
 
   /**

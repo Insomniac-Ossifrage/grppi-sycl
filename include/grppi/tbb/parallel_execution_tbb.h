@@ -278,6 +278,7 @@ namespace grppi {
 
 
       ::std::atomic<long> order {0};
+      using output_value_type = OutputType::first_type::value_type;
       pipeline(
         [&](){
           auto item = input_queue.pop();
@@ -285,7 +286,7 @@ namespace grppi {
           return item.first;
         },
         std::forward<Transformer>(transform_op),
-        [&](auto & item ){
+        [&](output_value_type item){
           output_queue.push(make_pair(typename OutputType::first_type{item}, order.load()));
           order++;
         }
@@ -786,7 +787,7 @@ namespace grppi {
     auto make_node(oneapi::tbb::flow::graph & g, int cardinality, F && f)
     {
       using namespace oneapi::tbb::flow;
-      using input_type = meta::input_type<F>;
+      using input_type = std::decay_t<meta::input_type<F>>;
       using output_type = meta::output_type<F>;
       if constexpr (std::is_void_v<output_type>) {
         auto node = std::make_unique<function_node<input_type>>(
@@ -903,6 +904,15 @@ namespace grppi {
           });
       return node;
 
+    }
+
+    template<typename F,
+        requires_context<F> = 0>
+    decltype(auto) make_node(oneapi::tbb::flow::graph & g,
+        int cardinality,
+        F && f)
+    {
+      return make_node(g, cardinality, std::forward<F>(f).transformer());
     }
 
     template<typename I, typename T, std::size_t ... N>
